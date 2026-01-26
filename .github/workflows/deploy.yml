@@ -25,20 +25,24 @@ jobs:
       - name: Run tests
         run: |
           echo "No tests yet"
-          # pytest  # agar test bo‘lsa
+          # pytest  # Agar testlar bo‘lsa
 
+      # 🔐 Docker Hub login (TO‘G‘RILANGAN)
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
+      # 🐳 Docker image build
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/agro-app:${{ github.sha }} .
+          docker build -t "${{ secrets.DOCKER_HUB_USERNAME }}/agro-app:${{ github.sha }}" .
 
+      # 📤 Docker image push
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/agro-app:${{ github.sha }}
+          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/agro-app:${{ github.sha }}"
 
+      # 🚀 Kubernetes deploy (keyingi bosqichda to‘ldiramiz)
       - name: Deploy to Kubernetes
         if: github.ref == 'refs/heads/main'
         run: |
