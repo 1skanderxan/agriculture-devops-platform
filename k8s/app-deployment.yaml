@@ -1,24 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agro-app
-  namespace: agro
+  name: agree-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: agro-app
+      app: agree-app
   template:
     metadata:
       labels:
-        app: agro-app
+        app: agree-app
     spec:
       containers:
-      - name: agro-app
-        image: agreeculcure-web:latest
-        imagePullPolicy: Never
+      - name: agree-app
+        image: iscomarcuz/agreeculture-app:latest
         ports:
         - containerPort: 5000
         env:
         - name: DATABASE_URL
-          value: postgresql://postgres:postgres@postgres:5432/agro_db
+          value: "postgresql://postgres:postgres@agree-postgres:5432/agree_db"

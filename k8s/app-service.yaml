@@ -1,12 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: agro-app
-  namespace: agro
+  name: agree-app
 spec:
-  type: NodePort
-  ports:
-    - port: 5000
-      nodePort: 32000
   selector:
-    app: agro-app
+    app: agree-app
+  ports:
+  - port: 5000
+    targetPort: 5000
+  type: ClusterIP
