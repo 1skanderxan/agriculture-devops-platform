@@ -72,7 +72,7 @@ jobs:
             ENV="dev"
           fi
 
-          FILE="charts/agro-api/values-$ENV.yaml"
+          FILE="gitops-repo/charts/agro-api/values-$ENV.yaml"
 
           echo "Using environment: $ENV"
           echo "Updating: $FILE"
