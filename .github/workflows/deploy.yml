@@ -1,4 +1,6 @@
 name: Python GitOps CI/CD (Agro App)
+permissions:
+  contents: write
 
 on:
   workflow_dispatch:
