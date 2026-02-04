@@ -1,0 +1,12 @@
+namespace: dev
+
+image:
+  repository: iscomarcuz/agro-app
+  tag: "dev"
+
+replicaCount: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  host: dev.agro.local

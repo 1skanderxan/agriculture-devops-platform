@@ -1,11 +1,28 @@
-name: Python CI/CD (AgriDevOps)
+name: Python GitOps CI/CD (Agro App)
 
 on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment"
+        required: true
+        type: choice
+        options: [ dev, staging, prod ]
+        default: dev
+
+      deploy:
+        description: "Deploy after build?"
+        required: true
+        type: boolean
+        default: true
+
   push:
     branches: [ "main" ]
-  workflow_dispatch:
 
 jobs:
+  # -----------------------------------------------------------
+  # 1️⃣ BUILD + TEST + DOCKER BUILD & PUSH
+  # -----------------------------------------------------------
   build:
     runs-on: ubuntu-latest
 
@@ -13,37 +30,88 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ---- Python setup ----
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run tests
         run: |
           echo "No tests yet"
-          # pytest  # Agar testlar bo‘lsa
+          # pytest  # bo'lsa qo'llaysan
 
-      # 🔐 Docker Hub login (TO‘G‘RILANGAN)
+      # ---- Docker Hub login ----
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login \
+            -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
-      # 🐳 Docker image build
+      # ---- Build & Push Image ----
       - name: Build Docker image
         run: |
-          docker build -t "${{ secrets.DOCKER_HUB_USERNAME }}/agro-app:${{ github.sha }}" .
+          docker build -t iscomarcuz/agro-app:${{ github.sha }} .
 
-      # 📤 Docker image push
       - name: Push Docker image
         run: |
-          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/agro-app:${{ github.sha }}"
+          docker push iscomarcuz/agro-app:${{ github.sha }}
 
-      # 🚀 Kubernetes deploy (keyingi bosqichda to‘ldiramiz)
-      - name: Deploy to Kubernetes
-        if: github.ref == 'refs/heads/main'
+      # -----------------------------------------------------------
+      #  GitOps — Update Helm values file for selected environment
+      # -----------------------------------------------------------
+      - name: Update Helm image tag
+        if: ${{ github.event.inputs.deploy == 'true' || github.ref == 'refs/heads/main' }}
         run: |
-          echo "K8s deploy will be added next step..."
+          FILE="charts/agro-api/values-${{ github.event.inputs.environment }}.yaml"
+          echo "Updating image tag inside $FILE"
+          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" $FILE
+
+      - name: Commit GitOps changes
+        if: ${{ github.event.inputs.deploy == 'true' || github.ref == 'refs/heads/main' }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add charts/agro-api
+          git commit -m "GitOps: update image tag to ${{ github.sha }} for ${{ github.event.inputs.environment }}"
+          git push
+
+  # -----------------------------------------------------------
+  # 2️⃣ TRIVY SECURITY SCAN
+  # -----------------------------------------------------------
+  trivy-scan:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Build again for scanning
+      - name: Build image for scan
+        run: |
+          docker build -t agro-app:${{ github.sha }} .
+
+      - name: Trivy Scan (table)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: image
+          image-ref: agro-app:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: table
+
+      - name: Trivy Scan (SARIF)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: image
+          image-ref: agro-app:${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
