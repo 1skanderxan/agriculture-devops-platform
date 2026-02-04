@@ -128,7 +128,11 @@ helm install agro-api-prod ./gitops-repo/charts/agro-api -f ./gitops-repo/charts
 For automated deployment via ArgoCD:
 
 1. Access your ArgoCD server
-2. Apply the application files from `gitops-repo/argo-apps/`:
+   
+<img width="1664" height="636" alt="image" src="https://github.com/user-attachments/assets/3ca1d1af-49a4-493a-9212-39226c6e090d" />
+
+
+3. Apply the application files from `gitops-repo/argo-apps/`:
 
 ```bash
 kubectl apply -f gitops-repo/argo-apps/agro-api-dev.yaml
