@@ -2,7 +2,7 @@ namespace: dev
 
 image:
   repository: iscomarcuz/agro-app
-  tag: "dev"
+  tag: "9e4e577288becc4bcc21c025a74b7f3a2a8b89fc"
 
 replicaCount: 1
 
