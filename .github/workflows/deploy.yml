@@ -30,7 +30,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ---- Python setup ----
+      # ---- Python ----
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -42,7 +42,7 @@ jobs:
       - name: Run tests
         run: |
           echo "No tests yet"
-          # pytest  # bo'lsa qo'llaysan
+          # pytest
 
       # ---- Docker Hub login ----
       - name: Login to Docker Hub
@@ -50,24 +50,34 @@ jobs:
           echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login \
             -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
-      # ---- Build & Push Image ----
+      # ---- Build Docker image ----
       - name: Build Docker image
         run: |
           docker build -t iscomarcuz/agro-app:${{ github.sha }} .
 
+      # ---- Push Docker image ----
       - name: Push Docker image
         run: |
           docker push iscomarcuz/agro-app:${{ github.sha }}
 
       # -----------------------------------------------------------
-      #  GitOps — Update Helm values file for selected environment
+      #  GitOps — update Helm values for selected environment
       # -----------------------------------------------------------
       - name: Update Helm image tag
         if: ${{ github.event.inputs.deploy == 'true' || github.ref == 'refs/heads/main' }}
         run: |
-          FILE="charts/agro-api/values-${{ github.event.inputs.environment }}.yaml"
-          echo "Updating image tag inside $FILE"
-          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" $FILE
+          # Get environment or fallback to "dev"
+          ENV="${{ github.event.inputs.environment }}"
+          if [ -z "$ENV" ]; then
+            ENV="dev"
+          fi
+
+          FILE="charts/agro-api/values-$ENV.yaml"
+
+          echo "Using environment: $ENV"
+          echo "Updating: $FILE"
+
+          sed -i "s|tag:.*|tag: \"${{ github.sha }}\"|g" "$FILE"
 
       - name: Commit GitOps changes
         if: ${{ github.event.inputs.deploy == 'true' || github.ref == 'refs/heads/main' }}
@@ -75,7 +85,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add charts/agro-api
-          git commit -m "GitOps: update image tag to ${{ github.sha }} for ${{ github.event.inputs.environment }}"
+          git commit -m "GitOps: update image tag to ${{ github.sha }}"
           git push
 
   # -----------------------------------------------------------
@@ -89,7 +99,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Build again for scanning
       - name: Build image for scan
         run: |
           docker build -t agro-app:${{ github.sha }} .
@@ -111,7 +120,7 @@ jobs:
           format: sarif
           output: trivy-results.sarif
 
-      - name: Upload SARIF results
+      - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
