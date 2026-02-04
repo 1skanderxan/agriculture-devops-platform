@@ -66,7 +66,6 @@ jobs:
       - name: Update Helm image tag
         if: ${{ github.event.inputs.deploy == 'true' || github.ref == 'refs/heads/main' }}
         run: |
-          # Get environment or fallback to "dev"
           ENV="${{ github.event.inputs.environment }}"
           if [ -z "$ENV" ]; then
             ENV="dev"
@@ -84,9 +83,10 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add charts/agro-api
+          git add gitops-repo/charts/agro-api
           git commit -m "GitOps: update image tag to ${{ github.sha }}"
           git push
+  
 
   # -----------------------------------------------------------
   # 2️⃣ TRIVY SECURITY SCAN
